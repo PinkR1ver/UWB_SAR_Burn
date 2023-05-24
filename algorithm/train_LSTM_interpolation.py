@@ -6,8 +6,21 @@ import dataset_LSTM_interpolation as dli
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import LSTM_interpolation_model
+from tqdm import tqdm
+from torch import optim
+import gc
 
-batch_size = 16
+input_dim = 4
+batch_size = 2
+epoch = 200
+
+if torch.cuda.is_available():
+    device = 'cuda'
+    print("Using cuda")
+else:
+    device = 'cpu'
+    print("Using CPU")
 
 if __name__ == '__main__':
     
@@ -23,8 +36,58 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(dataset=validation_dataset, batch_size=batch_size, shuffle=False)
 
-    for i, (ts, dis, ts_ans) in enumerate(train_loader):
-        print(ts.shape)
-        print(dis.shape)
-        print(ts_ans.shape)
-        pause = input('pause')
+    model = LSTM_interpolation_model.varLSTM(input_size=1, hidden_size=256, output_size=1, corresponding_feature_size=2, dense_node_size=[32, 64, 128], num_layers=4).to(device)
+    print(model)
+
+    opt = optim.Adam(model.parameters())  # stochastic gradient descent
+    loss_function = nn.BCELoss()
+
+    for iter in range(epoch):
+        for i, (ts, dis, ts_ans) in tqdm(enumerate(train_loader), desc='train_epoch: ' + str(iter), total=len(train_loader)):
+            ts, dis, ts_ans = ts.to(device), dis.to(device), ts_ans.to(device)
+
+            '''
+            print(ts.shape) # shape is (batch, input_dim, seq_len), the model needs (input_dim, seq_len, batch, input_size)
+            print(dis.shape) # shape is (batch, input_dim, feature_len)
+            print(ts_ans.shape) # shape is (batch, seq_len)
+            pause = input('pause')
+            '''
+
+            ts = torch.unsqueeze(ts, dim=3) # change to (batch, input_dim, seq_len, input_size)
+            input_ts = ts.permute(1, 2, 0, 3) # change to (input_dim, seq_len, batch, input_size)
+
+            dis = dis.unsqueeze(-1).expand(-1, -1, -1, model.num_layers) # change to (batch, input_dim, seq_len, num_layers)
+            input_dis = dis.permute(1, 2, 0, 3) # change to (input_dim, faeture_size, batch, num_layers)
+
+            '''
+            print(input_ts.shape)
+            print(input_dis.shape)
+            pause = input('pause')
+            '''
+
+            predict_ts = model(input_dim, input_ts, input_dis, 64)
+
+            loss = loss_function(predict_ts, ts_ans)
+
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+
+            if (i+1) % 100 == 0:
+                fig, ax = plt.subplots()
+
+                ax.plot(ts_ans[0].cpu().detach().numpy(), label='ans', color='blue')
+                ax.plot(predict_ts[0].cpu().detach().numpy(), label='predict', color='red')
+
+                ax.legend()
+                
+                # if don't have dir, create it
+                if not os.path.isdir('result'):
+                    os.makedirs('result')
+                
+                plt.savefig('result/' + str(iter) + '_' + str(i) + '.png')
+
+            gc.collect()
+
+            
+
