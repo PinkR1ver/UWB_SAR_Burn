@@ -14,5 +14,9 @@
 # # 打印修改后的DataFrame
 # print(df)
 
-for i in range(1, 10):
-    print(i)
+# for i in range(1, 10):
+#     print(i)
+
+import numpy as np
+
+print(np.zeros(10))

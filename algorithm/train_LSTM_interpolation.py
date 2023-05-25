@@ -45,6 +45,8 @@ if __name__ == '__main__':
     opt = optim.Adam(model.parameters())  # stochastic gradient descent
     loss_function = nn.L1Loss()
 
+    loss_list = np.zeros(len(train_loader))
+
     for iter in range(epoch):
         for i, (ts, dis, ts_ans) in track(enumerate(train_loader), description=f"epoch{iter} Processing...", total=len(train_loader)):
             # ts, dis, ts_ans = ts.to(device), dis.to(device), ts_ans.to(device)
@@ -74,6 +76,7 @@ if __name__ == '__main__':
             predict_ts = model(input_ts, input_dis)
 
             loss = loss_function(predict_ts, ts_ans)
+            loss_list[i] = loss
 
             opt.zero_grad()
             loss.backward()
@@ -91,9 +94,24 @@ if __name__ == '__main__':
                 if not os.path.isdir('result'):
                     os.makedirs('result')
                 
-                plt.savefig('result/' + str(iter) + '_' + str(i) + '.png')
+                plt.savefig('result/' + 'epoch' + str(iter) + '_' + str(i) + '.png')
+                plt.close()
+
+            if (i+1) % 1000 == 0:
+
+                # if don't have dir, create it
+                if not os.path.isdir('result'):
+                    os.makedirs('result')
+                
+                torch.save(model.state_dict(), 'result/' + 'epoch' + str(iter) + '_' + str(i) + '.pth')
 
             gc.collect()
+
+        fig = plt.figure
+        plt.plot(loss_list)
+        plt.savefig('result/' + 'epoch' + str(iter) + '_loss' + '.png')
+
+        
 
             
 
