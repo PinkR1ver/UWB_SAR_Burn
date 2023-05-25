@@ -10,9 +10,10 @@ import LSTM_interpolation_model
 from tqdm import tqdm
 from torch import optim
 import gc
+from rich.progress import track
 
 input_dim = 4
-batch_size = 2
+batch_size = 8
 epoch = 200
 
 if torch.cuda.is_available():
@@ -36,15 +37,18 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(dataset=validation_dataset, batch_size=batch_size, shuffle=False)
 
-    model = LSTM_interpolation_model.varLSTM(input_size=1, hidden_size=256, output_size=1, corresponding_feature_size=2, dense_node_size=[32, 64, 128], num_layers=4).to(device)
-    print(model)
+    model = LSTM_interpolation_model.varLSTM(input_size=1, hidden_size=64, output_size=1, corresponding_feature_size=2, dense_node_size=[16, 32, 32], num_layers=2)
+    model = model.to(device)
+
+    # print(model)
 
     opt = optim.Adam(model.parameters())  # stochastic gradient descent
-    loss_function = nn.BCELoss()
+    loss_function = nn.MSELoss()
 
     for iter in range(epoch):
-        for i, (ts, dis, ts_ans) in tqdm(enumerate(train_loader), desc='train_epoch: ' + str(iter), total=len(train_loader)):
-            ts, dis, ts_ans = ts.to(device), dis.to(device), ts_ans.to(device)
+        for i, (ts, dis, ts_ans) in track(enumerate(train_loader), description=f"epoch{iter} Processing...", total=len(train_loader)):
+            # ts, dis, ts_ans = ts.to(device), dis.to(device), ts_ans.to(device)
+            ts_ans = ts_ans.to(device)
 
             '''
             print(ts.shape) # shape is (batch, input_dim, seq_len), the model needs (input_dim, seq_len, batch, input_size)
@@ -65,7 +69,9 @@ if __name__ == '__main__':
             pause = input('pause')
             '''
 
-            predict_ts = model(input_dim, input_ts, input_dis, 64)
+            input_ts, input_dis = input_ts.to(device), input_dis.to(device)
+
+            predict_ts = model(input_dim, input_ts, input_dis)
 
             loss = loss_function(predict_ts, ts_ans)
 

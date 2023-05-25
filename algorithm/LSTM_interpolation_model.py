@@ -40,7 +40,14 @@ class varLSTM(nn.Module):
 
         # self.merge = nn.Transformer(d_model=self.merge_hidden_size, nhead=self.merge_heads, num_encoder_layers=self.merge_encoder_layers, num_decoder_layers=self.merge_decoder_layers)
 
-    def forward(self, input_dim, input_seq, input_feature, num_loops):
+        if torch.cuda.is_available():
+            self.device = 'cuda'
+            # print("Using cuda")
+        else:
+            self.device = 'cpu'
+            # print("Using CPU")
+
+    def forward(self, input_dim, input_seq, input_feature):
         # input_seq: (input_dim, seq_len, batch, input_size)
         # input_feature: (input_dim, feature_size, batch, layers)
 
@@ -63,19 +70,17 @@ class varLSTM(nn.Module):
             
             # c_0 = c_0.permute(1, 0, 2) # change to (batch, layers, feature_size)
 
-            for j in range(num_loops):
                 
-                input = input_seq[i]
+            input = input_seq[i]
 
-                lstm_out, (h_n, c_n) = self.lstm(input, (h_0, c_0))
-
-                h_0 = h_n
-                c_0 = c_n
+            lstm_out, (h_n, c_n) = self.lstm(input, (h_0, c_0))
 
             lstm_out = self.fc(lstm_out)
 
             ans[i] = lstm_out # (input_dim, seq_len, batch, output_size)
         
+        ans = ans.to(self.device)
+
         output = self.merge(ans.permute(1, 2, 3, 0)) # (seq_len, batch, output_size, input_dim)
 
         output = torch.squeeze(output) # (seq_len, batch)
@@ -84,13 +89,24 @@ class varLSTM(nn.Module):
         
 
 if __name__ == '__main__':
-    model = varLSTM(1, 128, 1, 2, [32, 64, 64], 4)
+
+    if torch.cuda.is_available():
+        device = 'cuda'
+        print("Using cuda")
+    else:
+        device = 'cpu'
+        print("Using CPU")
+    
+    model = varLSTM(1, 128, 1, 2, [32, 64, 64], 1)
+    model = model.to(device)
 
     input_seq = torch.randn(4, 3801, 16, 1) # (input_dim, seq_len, batch, input_size)
-    input_feature = torch.randn(4, 2, 16, 4) # (input_dim, feature_size, batch, layers)
+    input_feature = torch.randn(4, 2, 16, 1) # (input_dim, feature_size, batch, layers)
+
+    input_seq, input_feature = input_seq.to(device), input_feature.to(device)
 
     print(model)
 
-    output = model(4, input_seq, input_feature, 4)
+    output = model(4, input_seq, input_feature)
 
     print(output.shape)
