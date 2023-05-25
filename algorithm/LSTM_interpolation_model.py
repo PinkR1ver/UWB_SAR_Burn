@@ -3,6 +3,8 @@
 import torch
 import torch.nn as nn
 
+input_dim = 4
+
 class varLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, corresponding_feature_size, dense_node_size, num_layers):
         super(varLSTM, self).__init__()
@@ -21,7 +23,7 @@ class varLSTM(nn.Module):
         layers = []
         for i in range(len(dense_node_size)):
             if i == 0:
-                layers.append(nn.Linear(corresponding_feature_size, dense_node_size[i]))
+                layers.append(nn.Linear(input_size * corresponding_feature_size, dense_node_size[i]))
             else:
                 layers.append(nn.Linear(dense_node_size[i-1], dense_node_size[i]))
             
@@ -47,10 +49,12 @@ class varLSTM(nn.Module):
             self.device = 'cpu'
             # print("Using CPU")
 
-    def forward(self, input_dim, input_seq, input_feature):
+    def forward(self, input_seq, input_feature):
+        '''
         # input_seq: (input_dim, seq_len, batch, input_size)
         # input_feature: (input_dim, feature_size, batch, layers)
 
+        # Old structure
         ans = torch.zeros(input_dim, input_seq.shape[1], input_seq.shape[2], self.output_size)
         
         for i in range(input_dim):
@@ -86,7 +90,51 @@ class varLSTM(nn.Module):
         output = torch.squeeze(output) # (seq_len, batch)
 
         return output.permute(1, 0) # (batch, seq_len)
-        
+
+        '''
+
+        # input_seq: (input_size, seq_len, batch)
+        # input_feature: (input_size, feature_size, batch, layers)
+
+        input_size = input_feature.size(0)
+        feature_size = input_feature.size(1)
+        batch = input_feature.size(2)
+        layers = input_feature.size(3)
+
+        reshaped_input_feature = input_feature.view(input_size * feature_size, batch, layers)
+
+        h_0 = reshaped_input_feature.permute(1, 2, 0) # shape to (batch, layers, input_size * feature_size)
+        c_0 = reshaped_input_feature.permute(1, 2, 0) # shape to (batch, layers, input_size * feature_size)
+
+        for module in self.dense1:
+            h_0 = module(h_0) # (batch, layers, hidden_size)
+
+        h_0 = h_0.permute(1, 0, 2) # change to (layers, batch, feature_size)
+
+        for module in self.dense1:
+            c_0 = module(c_0) # (batch, layers, hidden_size)
+
+        c_0 = c_0.permute(1, 0, 2) # change to (layers, batch, feature_size)
+
+        input_seq = input_seq.permute(1, 2, 0) # (seq_len, batch, input_size)
+
+        '''
+        print(input_seq.shape)
+        print(h_0.shape)
+        print(c_0.shape)
+        '''
+
+        h_0 = h_0.contiguous()
+        c_0 = c_0.contiguous()
+
+        lstm_out, _ = self.lstm(input_seq, (h_0, c_0)) # (seq_len, batch, output_size)
+
+        output = self.fc(lstm_out)
+
+        output = torch.squeeze(output)
+
+        return output.permute(1, 0)
+
 
 if __name__ == '__main__':
 
@@ -97,16 +145,16 @@ if __name__ == '__main__':
         device = 'cpu'
         print("Using CPU")
     
-    model = varLSTM(1, 128, 1, 2, [32, 64, 64], 1)
+    model = varLSTM(4, 128, 1, 2, [32, 64, 64], 4)
     model = model.to(device)
 
-    input_seq = torch.randn(4, 3801, 16, 1) # (input_dim, seq_len, batch, input_size)
-    input_feature = torch.randn(4, 2, 16, 1) # (input_dim, feature_size, batch, layers)
+    input_seq = torch.randn(4, 3801, 16) # (input_size, seq_len, batch)
+    input_feature = torch.randn(4, 2, 16, 4) # (input_size, feature_size, batch, layers)
 
     input_seq, input_feature = input_seq.to(device), input_feature.to(device)
 
     print(model)
 
-    output = model(4, input_seq, input_feature)
+    output = model(input_seq, input_feature)
 
     print(output.shape)

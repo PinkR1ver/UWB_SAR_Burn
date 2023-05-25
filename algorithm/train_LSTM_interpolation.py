@@ -13,7 +13,7 @@ import gc
 from rich.progress import track
 
 input_dim = 4
-batch_size = 8
+batch_size = 12
 epoch = 200
 
 if torch.cuda.is_available():
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(dataset=validation_dataset, batch_size=batch_size, shuffle=False)
 
-    model = LSTM_interpolation_model.varLSTM(input_size=1, hidden_size=64, output_size=1, corresponding_feature_size=2, dense_node_size=[16, 32, 32], num_layers=2)
+    model = LSTM_interpolation_model.varLSTM(input_size=4, hidden_size=64, output_size=1, corresponding_feature_size=2, dense_node_size=[16, 32, 32], num_layers=4)
     model = model.to(device)
 
     # print(model)
@@ -51,17 +51,17 @@ if __name__ == '__main__':
             ts_ans = ts_ans.to(device)
 
             '''
-            print(ts.shape) # shape is (batch, input_dim, seq_len), the model needs (input_dim, seq_len, batch, input_size)
-            print(dis.shape) # shape is (batch, input_dim, feature_len)
+            print(ts.shape) # shape is (batch, input_size, seq_len), the model needs (seq_len, batch, input_size)
+            print(dis.shape) # shape is (batch, input_size, feature_len)
             print(ts_ans.shape) # shape is (batch, seq_len)
             pause = input('pause')
             '''
 
-            ts = torch.unsqueeze(ts, dim=3) # change to (batch, input_dim, seq_len, input_size)
-            input_ts = ts.permute(1, 2, 0, 3) # change to (input_dim, seq_len, batch, input_size)
+            # ts = torch.unsqueeze(ts, dim=3) # change to (batch, input_dim, seq_len, input_size)
+            input_ts = ts.permute(1, 2, 0) # change to (input_size, seq_len, batch)
 
             dis = dis.unsqueeze(-1).expand(-1, -1, -1, model.num_layers) # change to (batch, input_dim, seq_len, num_layers)
-            input_dis = dis.permute(1, 2, 0, 3) # change to (input_dim, faeture_size, batch, num_layers)
+            input_dis = dis.permute(1, 2, 0, 3) # change to (input_size, faeture_size, batch, num_layers)
 
             '''
             print(input_ts.shape)
@@ -70,8 +70,8 @@ if __name__ == '__main__':
             '''
 
             input_ts, input_dis = input_ts.to(device), input_dis.to(device)
-
-            predict_ts = model(input_dim, input_ts, input_dis)
+            
+            predict_ts = model(input_ts, input_dis)
 
             loss = loss_function(predict_ts, ts_ans)
 
