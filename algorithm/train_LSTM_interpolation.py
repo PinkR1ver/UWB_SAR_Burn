@@ -43,7 +43,7 @@ if __name__ == '__main__':
     # print(model)
 
     opt = optim.Adam(model.parameters())  # stochastic gradient descent
-    loss_function = nn.MSELoss()
+    loss_function = nn.L1Loss()
 
     for iter in range(epoch):
         for i, (ts, dis, ts_ans) in track(enumerate(train_loader), description=f"epoch{iter} Processing...", total=len(train_loader)):
