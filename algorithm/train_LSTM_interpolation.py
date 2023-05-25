@@ -14,7 +14,7 @@ from rich.progress import track
 
 input_dim = 4
 batch_size = 12
-epoch = 200
+epoch = 50
 
 if torch.cuda.is_available():
     device = 'cuda'
