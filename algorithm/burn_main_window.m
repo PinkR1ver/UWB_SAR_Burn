@@ -72,7 +72,7 @@ ylim([-0.05, 0.21])
 
 
 tic
-Image3D = GBP_3D_simu_window(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, 0.036);
+Image3D = GBP_3D_simu_window(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, 0.4);
 toc
 
 %% convert cube to vector to scatter 3D cube
@@ -105,3 +105,15 @@ for i = 65:70
     title ('slice')
     view(90, 90)
 end
+
+% for i = 66:70
+%     figure
+%     data = Image3D (:,:,i);
+%     cmin = min(min(data))
+%     cmax = max(max(data))
+
+%     clims = [cmin cmax]
+
+%     imagesc(data, [cmin cmax]);
+%     axis equal;
+% end

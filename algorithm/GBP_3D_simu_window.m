@@ -28,9 +28,12 @@ function imgI = GBP_3D_simu(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N
                     t = (R(nx, ny, nz) - range_compan) / c; % Calculate the time of flight
                     index = floor(t * fs) + 1;
 
-                    slice_horizontal_length = sqrt(X2t + Y2t);
 
-                    if(index < length_s && slice_horizontal_length < window_length)
+                    slice_horizonal_dis = sqrt(X2t + Y2t);
+                    disX = sqrt(X2t);
+                    disY = sqrt(Y2t);
+
+                    if(index < length_s && slice_horizonal_dis < window_length)
                         imgTmp(nx, ny, nz, 1) = s(n_aper, index);
                         imgTmp(nx, ny, nz, 2) = imgTmp(nx, ny, nz, 2) + 1;
                     end
@@ -43,13 +46,13 @@ function imgI = GBP_3D_simu(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N
     end
 
     %% Normalization
-    % img2 = imgI(:, :, :, 2);
-    % mask = img2 ~= 0;
-    % averageImgI = zeros(size(imgI, 1), size(imgI, 2), size(imgI, 3));
-    % averageImgI(mask) = imgI(mask) ./ img2(mask);
+    img2 = imgI(:, :, :, 2);
+    mask = img2 ~= 0;
+    averageImgI = zeros(size(imgI, 1), size(imgI, 2), size(imgI, 3));
+    averageImgI(mask) = imgI(mask) ./ img2(mask);
 
-    % imgI = averageImgI;
-    imgI = imgI(:, :, :, 1);
+    imgI = averageImgI;
+    % imgI = imgI(:, :, :, 1);
 
     % minI = min(min(min(imgI)));
     % maxI = max(max(max(imgI)));
