@@ -14,7 +14,7 @@ from rich.progress import track
 
 input_dim = 4
 batch_size = 12
-epoch = 50
+epoch = 15
 
 if torch.cuda.is_available():
     device = 'cuda'
@@ -46,6 +46,7 @@ if __name__ == '__main__':
     loss_function = nn.L1Loss()
 
     loss_list = np.zeros(len(train_loader))
+    average_loss_list = np.zeros(epoch)
 
     for iter in range(epoch):
         for i, (ts, dis, ts_ans) in track(enumerate(train_loader), description=f"epoch{iter} Processing...", total=len(train_loader)):
@@ -91,25 +92,40 @@ if __name__ == '__main__':
                 ax.legend()
                 
                 # if don't have dir, create it
-                if not os.path.isdir('result'):
-                    os.makedirs('result')
+                if not os.path.isdir('LSTM_result'):
+                    os.makedirs('LSTM_result')
                 
-                plt.savefig('result/' + 'epoch' + str(iter) + '_' + str(i) + '.png')
+                plt.savefig('LSTM_result/' + 'epoch' + str(iter) + '_' + str(i) + '.png')
                 plt.close()
 
             if (i+1) % 1000 == 0:
 
                 # if don't have dir, create it
-                if not os.path.isdir('result'):
-                    os.makedirs('result')
+                if not os.path.isdir('LSTM_result'):
+                    os.makedirs('LSTM_result')
                 
-                torch.save(model.state_dict(), 'result/' + 'epoch' + str(iter) + '_' + str(i) + '.pth')
+                torch.save(model.state_dict(), 'LSTM_result/' + 'epoch' + str(iter) + '_' + str(i) + '.pth')
 
             gc.collect()
+        
+
+        average_loss_list[iter] = np.mean(loss_list)
 
         fig = plt.figure
         plt.plot(loss_list)
-        plt.savefig('result/' + 'epoch' + str(iter) + '_loss' + '.png')
+        plt.savefig('LSTM_result/' + 'epoch' + str(iter) + '_loss' + '.png')
+        plt.close()
+
+        # save loss .txt file
+        np.savetxt('LSTM_result/' + 'epoch' + str(iter) + '_loss' + '.txt', loss_list)
+
+    fig = plt.figure
+    plt.plot(average_loss_list)
+    plt.savefig('LSTM_result/' + 'average_loss' + '.png')
+    plt.close()
+
+    # save averge loss .txt file
+    np.savetxt('LSTM_result/' + 'average_loss' + '.txt', average_loss_list)
 
         
 
