@@ -22,6 +22,7 @@ y_pred_lower = y_pred - z * std  # 置信区间下界
 rmse = np.sqrt(mean_squared_error(y_true, y_pred))
 mae = mean_absolute_error(y_true, y_pred)
 distance, path = fastdtw(y_true, y_pred)
+mfa = np.mean(np.where(y_true != 0, np.maximum(1 - np.abs((y_true - y_pred) / y_true), 0), np.maximum(1 - np.abs((y_true - y_pred) / (y_true + 1e-8)), 0)))
 
 # 绘制图形
 plt.figure(figsize=(10, 8))
@@ -36,7 +37,7 @@ plt.title('Time Series')
 plt.text(0.02, 0.9, f'RMSE: {rmse:.4f}', transform=plt.gca().transAxes)
 plt.text(0.02, 0.85, f'MAE: {mae:.4f}', transform=plt.gca().transAxes)
 plt.text(0.02, 0.8, f'DTW: {distance:.4f}', transform=plt.gca().transAxes)
-plt.text(0.02, 0.75, f'Mean Forecast Accuracy: {1 - distance / (len(x) - 1):.4f}', transform=plt.gca().transAxes)
+plt.text(0.02, 0.75, f'Mean Forecast Accuracy: {mfa * 100:.2f}%', transform=plt.gca().transAxes)
 
 plt.legend()
 plt.grid(True)
