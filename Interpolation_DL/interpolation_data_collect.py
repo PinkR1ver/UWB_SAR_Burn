@@ -106,10 +106,17 @@ def interpolation_data_collect():
     return df;
 
 if __name__ == '__main__':
-    df = interpolation_data_collect()
+    # df = interpolation_data_collect()
     
     '''
     plt.figure()
     plt.plot(df['ts1'][0])
     plt.show()
     '''
+
+    numbers = list(range(25))
+    combinations = list(itertools.combinations(numbers, 8))
+
+    combinations_ = list(itertools.combinations(numbers, 4))
+
+    print((len(combinations) * (25-8)) / (len(combinations_) * (25-4)))

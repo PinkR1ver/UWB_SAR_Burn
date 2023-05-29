@@ -108,12 +108,13 @@ end
 
 % for i = 66:70
 %     figure
-%     data = Image3D (:,:,i);
-%     cmin = min(min(data))
-%     cmax = max(max(data))
+%     data = Image3D(:,:,i);
+%     cmin = min(min(data));
+%     cmax = max(max(data));
 
-%     clims = [cmin cmax]
+%     clims = [cmin cmax];
 
 %     imagesc(data, [cmin cmax]);
 %     axis equal;
+%     colorbar;
 % end

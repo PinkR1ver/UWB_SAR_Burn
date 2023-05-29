@@ -21,7 +21,7 @@ def visualEvaluation_time_series_single(y_true, y_pred, confidence, savePath=Non
     # 计算评价指标
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mae = mean_absolute_error(y_true, y_pred)
-    distance, path = fastdtw(y_true, y_pred)
+    distance, _ = fastdtw(y_true, y_pred)
     mfa = np.mean(np.where(y_true != 0, np.maximum(1 - np.abs((y_true - y_pred) / y_true), 0), np.maximum(1 - np.abs((y_true - y_pred) / (y_true + 1e-8)), 0)))
 
     # 绘制图形
@@ -51,7 +51,7 @@ def visualEvaluation_time_series_single(y_true, y_pred, confidence, savePath=Non
 def evaluation_time_series_txt(y_true, y_pred):
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mae = mean_absolute_error(y_true, y_pred)
-    distance, path = fastdtw(y_true, y_pred)
+    distance, _ = fastdtw(y_true, y_pred)
     mfa = np.mean(np.where(y_true != 0, np.maximum(1 - np.abs((y_true - y_pred) / y_true), 0), np.maximum(1 - np.abs((y_true - y_pred) / (y_true + 1e-8)), 0)))
 
     return rmse, mae, distance, mfa

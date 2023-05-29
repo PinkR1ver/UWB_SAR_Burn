@@ -1,10 +1,8 @@
 import os
 import torch
 from torch.utils.data import Dataset
-import pandas as pd
 import numpy as np
-import interpolation_data_collect as idc
-import scipy
+import scipy.io
 import itertools
 import math
 
@@ -27,7 +25,8 @@ class echoDataset(Dataset):
         # Load .mat file
 
         SAR_sample = scipy.io.loadmat(data_path)
-        SAR_sample = SAR_sample['data_8080_2_1_25']
+        data_name = data_path.split('\\')[-1].split('.')[0]
+        SAR_sample = SAR_sample[data_name]
 
         self.SAR_sample = SAR_sample
 
@@ -65,33 +64,30 @@ class echoDataset(Dataset):
         dis = np.stack((dis1, dis2, dis3, dis4), axis=0)
         '''
 
-        ts1 = self.SAR_sample[self.comb_list[index][0]]
-        ts2 = self.SAR_sample[self.comb_list[index][1]]
-        ts3 = self.SAR_sample[self.comb_list[index][2]]
-        ts4 = self.SAR_sample[self.comb_list[index][3]]
-        ts_ans = self.SAR_sample[self.comb_list[index][4]]
+        ts = np.empty((self.input_size, len(self.SAR_sample[0])))
 
-        ts = np.stack((ts1, ts2, ts3, ts4), axis=0)
+        for i in range(self.input_size):
+            ts[i] = self.SAR_sample[self.comb_list[index][i]]
 
-        (x1, y1) = index_to_position(self.comb_list[index][0])
-        (x2, y2) = index_to_position(self.comb_list[index][1])
-        (x3, y3) = index_to_position(self.comb_list[index][2])
-        (x4, y4) = index_to_position(self.comb_list[index][3])
-        (x_ans, y_ans) = index_to_position(self.comb_list[index][4])
+        ts_ans = self.SAR_sample[self.comb_list[index][self.input_size]]
 
-        dis1 = (x1-x_ans, y1-y_ans)
-        dis2 = (x2-x_ans, y2-y_ans)
-        dis3 = (x3-x_ans, y3-y_ans)
-        dis4 = (x4-x_ans, y4-y_ans)
+        dis = np.empty((self.input_size, 2))
 
-        dis = np.stack((dis1, dis2, dis3, dis4), axis=0)
-
+        for i in range(self.input_size):
+            (x, y) = index_to_position(self.comb_list[index][i])
+            (x_ans, y_ans) = index_to_position(self.comb_list[index][self.input_size])
+            dis[i] = (x - x_ans, y - y_ans)
 
         return torch.Tensor(ts), torch.Tensor(dis), torch.Tensor(ts_ans)
     
 
 if __name__ == '__main__':
 
-    dataset = echoDataset()
+    base_path = os.path.dirname(__file__)
+    data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
+
+    dataset = echoDataset(8, data_path=data_path)
 
     print(dataset[0][0].shape)
+    print(dataset[0][1].shape)
+    print(dataset[0][2].shape)

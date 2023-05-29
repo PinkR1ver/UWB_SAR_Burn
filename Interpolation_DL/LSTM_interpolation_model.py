@@ -3,8 +3,6 @@
 import torch
 import torch.nn as nn
 
-input_dim = 4
-
 class varLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, corresponding_feature_size, dense_node_size, num_layers):
         super(varLSTM, self).__init__()
@@ -38,7 +36,7 @@ class varLSTM(nn.Module):
 
         self.fc = nn.Linear(hidden_size, output_size)
 
-        self.merge = nn.Linear(4, output_size)
+        # self.merge = nn.Linear(4, output_size)
 
         # self.merge = nn.Transformer(d_model=self.merge_hidden_size, nhead=self.merge_heads, num_encoder_layers=self.merge_encoder_layers, num_decoder_layers=self.merge_decoder_layers)
 
@@ -145,11 +143,11 @@ if __name__ == '__main__':
         device = 'cpu'
         print("Using CPU")
     
-    model = varLSTM(4, 128, 1, 2, [32, 64, 64], 4)
+    model = varLSTM(8, 128, 1, 2, [32, 64, 64], 4)
     model = model.to(device)
 
-    input_seq = torch.randn(4, 3801, 16) # (input_size, seq_len, batch)
-    input_feature = torch.randn(4, 2, 16, 4) # (input_size, feature_size, batch, layers)
+    input_seq = torch.randn(8, 3801, 16) # (input_size, seq_len, batch)
+    input_feature = torch.randn(8, 2, 16, 4) # (input_size, feature_size, batch, layers)
 
     input_seq, input_feature = input_seq.to(device), input_feature.to(device)
 
