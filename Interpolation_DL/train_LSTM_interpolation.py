@@ -72,8 +72,8 @@ if __name__ == '__main__':
     test_loss_list = np.zeros(len(test_loader))
     average_test_loss_list = np.zeros(epoch)
 
-    train_metrics_list = np.zeros((len(train_dataset), 4)) # [rmse, mae, dtw, mfa]
-    average_train_metrics_list = np.zeros((epoch, 4))
+    # train_metrics_list = np.zeros((len(train_dataset), 4)) # [rmse, mae, dtw, mfa]
+    # average_train_metrics_list = np.zeros((epoch, 4))
 
     test_metrics_list = np.zeros((len(test_dataset), 4)) # [rmse, mae, dtw, mfa]
     average_test_metrics_list = np.zeros((epoch, 4))
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     ## With experiment, we can find that the training process is very slow, so we need to find the bottleneck and we find the bottleneck here is the metrics calculation
     for iter in range(epoch):
 
-        train_metrics_index = 0
+        # train_metrics_index = 0
         test_metrics_index = 0
 
         for i, (ts, dis, ts_ans) in track(enumerate(train_loader), description=f"train_epoch{iter} Processing...", total=len(train_loader)):
@@ -122,11 +122,11 @@ if __name__ == '__main__':
             #     train_metrics_list[train_metrics_index] = metrics
             #     train_metrics_index += 1
 
-            # Using parallel version of evaluation_time_series_txt
-            metrics = eim.evaluation_time_series_txt(ts_ans.cpu().detach().numpy(), predict_ts.cpu().detach().numpy(), dim=predict_ts.shape[0]) # [rmse, mae, dtw, mfa]
-            # print(metrics)
-            train_metrics_list[train_metrics_index:train_metrics_index + predict_ts.shape[0]] = np.array(metrics).reshape(predict_ts.shape[0], 4)
-            train_metrics_index += predict_ts.shape[0]
+            # # Using parallel version of evaluation_time_series_txt
+            # metrics = eim.evaluation_time_series_txt(ts_ans.cpu().detach().numpy(), predict_ts.cpu().detach().numpy(), dim=predict_ts.shape[0]) # [rmse, mae, dtw, mfa]
+            # # print(metrics)
+            # train_metrics_list[train_metrics_index:train_metrics_index + predict_ts.shape[0]] = np.array(metrics).reshape(predict_ts.shape[0], 4)
+            # train_metrics_index += predict_ts.shape[0]
 
             opt.zero_grad()
             loss.backward()
@@ -177,7 +177,7 @@ if __name__ == '__main__':
         average_train_loss_list[iter] = np.mean(train_loss_list)
         average_test_loss_list[iter] = np.mean(test_loss_list)
 
-        average_train_metrics_list[iter] = np.mean(train_metrics_list, axis=0)
+        # average_train_metrics_list[iter] = np.mean(train_metrics_list, axis=0)
         average_test_metrics_list[iter] = np.mean(test_metrics_list, axis=0)
 
         # save loss image
@@ -201,44 +201,44 @@ if __name__ == '__main__':
         loss_txt_path = os.path.join(result_path, 'test_epoch' + str(iter) + '_loss' + '.txt')
         np.savetxt(loss_txt_path, test_loss_list)
 
-        # save train metrics distribution image
-        rmse_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_rmse' + '.png')
-        mae_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mae' + '.png')
-        dtw_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_dtw' + '.png')
-        mfa_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mfa' + '.png')
+        # # save train metrics distribution image
+        # rmse_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_rmse' + '.png')
+        # mae_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mae' + '.png')
+        # dtw_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_dtw' + '.png')
+        # mfa_image_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mfa' + '.png')
 
-        metrics_path = [rmse_image_path, mae_image_path, dtw_image_path, mfa_image_path]
+        # metrics_path = [rmse_image_path, mae_image_path, dtw_image_path, mfa_image_path]
         
-        for plot_index in range(len(metrics_path)):
+        # for plot_index in range(len(metrics_path)):
 
-            # plot histogram of metrics
-            fig = plt.figure
-            plt.hist(train_metrics_list[:, plot_index], edgecolor='black')
+        #     # plot histogram of metrics
+        #     fig = plt.figure
+        #     plt.hist(train_metrics_list[:, plot_index], edgecolor='black')
             
-            ## add label and title
+        #     ## add label and title
 
-            # get value name from path
-            value_name = metrics_path[plot_index].split('_')[-1].split('.')[0]
+        #     # get value name from path
+        #     value_name = metrics_path[plot_index].split('_')[-1].split('.')[0]
 
-            plt.xlabel(value_name + '_Value')
-            plt.ylabel('Frequency')
-            plt.title(value_name + '_Histogram')
+        #     plt.xlabel(value_name + '_Value')
+        #     plt.ylabel('Frequency')
+        #     plt.title(value_name + '_Histogram')
 
-            # save image
-            plt.savefig(metrics_path[plot_index])
-            plt.close()
+        #     # save image
+        #     plt.savefig(metrics_path[plot_index])
+        #     plt.close()
 
         
-        # save train metrics txt file
-        rmse_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_rmse' + '.txt')
-        mae_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mae' + '.txt')
-        dtw_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_dtw' + '.txt')
-        mfa_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mfa' + '.txt')
+        # # save train metrics txt file
+        # rmse_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_rmse' + '.txt')
+        # mae_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mae' + '.txt')
+        # dtw_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_dtw' + '.txt')
+        # mfa_txt_path = os.path.join(result_path, 'train_epoch' + str(iter) + '_mfa' + '.txt')
 
-        metrics_path = [rmse_txt_path, mae_txt_path, dtw_txt_path, mfa_txt_path]
+        # metrics_path = [rmse_txt_path, mae_txt_path, dtw_txt_path, mfa_txt_path]
 
-        for txt_index in range(len(metrics_path)):
-            np.savetxt(metrics_path[txt_index], train_metrics_list[:, txt_index])
+        # for txt_index in range(len(metrics_path)):
+        #     np.savetxt(metrics_path[txt_index], train_metrics_list[:, txt_index])
 
         # as same as train, save test metrics histogram and txt file
         rmse_image_path = os.path.join(result_path, 'test_epoch' + str(iter) + '_rmse' + '.png')
@@ -303,27 +303,27 @@ if __name__ == '__main__':
     loss_txt_path = os.path.join(result_path, 'test_average_loss' + '.txt')
     np.savetxt(loss_txt_path, average_test_loss_list)
 
-    # save train average metrics image
-    rmse_image_path = os.path.join(result_path, 'train_average_rmse' + '.png')
-    mae_image_path = os.path.join(result_path, 'train_average_mae' + '.png')
-    dtw_image_path = os.path.join(result_path, 'train_average_dtw' + '.png')
-    mfa_image_path = os.path.join(result_path, 'train_average_mfa' + '.png')
+    # # save train average metrics image
+    # rmse_image_path = os.path.join(result_path, 'train_average_rmse' + '.png')
+    # mae_image_path = os.path.join(result_path, 'train_average_mae' + '.png')
+    # dtw_image_path = os.path.join(result_path, 'train_average_dtw' + '.png')
+    # mfa_image_path = os.path.join(result_path, 'train_average_mfa' + '.png')
 
-    metrics_path = [rmse_image_path, mae_image_path, dtw_image_path, mfa_image_path]
+    # metrics_path = [rmse_image_path, mae_image_path, dtw_image_path, mfa_image_path]
 
-    for plot_index in range(len(metrics_path)):
-        fig = plt.figure
-        plt.plot(average_train_metrics_list[:, plot_index])
-        value_name = metrics_path[plot_index].split('_')[-1].split('.')[0]
+    # for plot_index in range(len(metrics_path)):
+    #     fig = plt.figure
+    #     plt.plot(average_train_metrics_list[:, plot_index])
+    #     value_name = metrics_path[plot_index].split('_')[-1].split('.')[0]
 
-        ## add label and title
-        plt.xlabel('Epoch')
-        plt.ylabel(value_name + '_Value')
-        plt.title(value_name + '_Epoch')
+    #     ## add label and title
+    #     plt.xlabel('Epoch')
+    #     plt.ylabel(value_name + '_Value')
+    #     plt.title(value_name + '_Epoch')
 
-        # save image
-        plt.savefig(metrics_path[plot_index])
-        plt.close()
+    #     # save image
+    #     plt.savefig(metrics_path[plot_index])
+    #     plt.close()
 
     # save test average metrics image
     rmse_image_path = os.path.join(result_path, 'test_average_rmse' + '.png')
@@ -347,16 +347,16 @@ if __name__ == '__main__':
         plt.savefig(metrics_path[plot_index])
         plt.close()
 
-    # save train average metrics txt file
-    rmse_txt_path = os.path.join(result_path, 'train_average_rmse' + '.txt')
-    mae_txt_path = os.path.join(result_path, 'train_average_mae' + '.txt')
-    dtw_txt_path = os.path.join(result_path, 'train_average_dtw' + '.txt')
-    mfa_txt_path = os.path.join(result_path, 'train_average_mfa' + '.txt')
+    # # save train average metrics txt file
+    # rmse_txt_path = os.path.join(result_path, 'train_average_rmse' + '.txt')
+    # mae_txt_path = os.path.join(result_path, 'train_average_mae' + '.txt')
+    # dtw_txt_path = os.path.join(result_path, 'train_average_dtw' + '.txt')
+    # mfa_txt_path = os.path.join(result_path, 'train_average_mfa' + '.txt')
 
-    metrics_path = [rmse_txt_path, mae_txt_path, dtw_txt_path, mfa_txt_path]
+    # metrics_path = [rmse_txt_path, mae_txt_path, dtw_txt_path, mfa_txt_path]
 
-    for txt_index in range(len(metrics_path)):
-        np.savetxt(metrics_path[txt_index], average_train_metrics_list[:, txt_index])
+    # for txt_index in range(len(metrics_path)):
+    #     np.savetxt(metrics_path[txt_index], average_train_metrics_list[:, txt_index])
 
     # save test average metrics txt file
     rmse_txt_path = os.path.join(result_path, 'test_average_rmse' + '.txt')
