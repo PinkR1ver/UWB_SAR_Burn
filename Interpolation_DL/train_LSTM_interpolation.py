@@ -13,7 +13,6 @@ import gc
 from rich.progress import track
 import evaluation_interpolation_model as eim
 
-
 if __name__ == '__main__':
 
     ## init some parameters
@@ -142,6 +141,9 @@ if __name__ == '__main__':
                 
                 model_parameter_path = os.path.join(result_path, 'epoch' + str(iter) + '_' + str(i) + '.pth')
                 torch.save(model.state_dict(), model_parameter_path)
+
+        model_parameter_path = os.path.join(result_path, 'epoch' + str(iter)+ '.pth')
+        torch.save(model.state_dict(), model_parameter_path)
 
         for i, (ts, dis, ts_ans) in track(enumerate(test_loader), description=f"test_epoch{iter} Processing...", total=len(test_loader)):
             ts_ans = ts_ans.to(device)
