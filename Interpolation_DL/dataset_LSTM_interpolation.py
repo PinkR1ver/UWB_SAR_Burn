@@ -5,6 +5,7 @@ import numpy as np
 import scipy.io
 import itertools
 import math
+import time
 
 def index_to_position(index, Xbeg=0, Xend=0.16, Ybeg=0, Yend=0.16, scan_points=5):
     
@@ -86,8 +87,16 @@ if __name__ == '__main__':
     base_path = os.path.dirname(__file__)
     data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
 
+    time_start = time.time()
     dataset = echoDataset(8, data_path=data_path)
+    time_end = time.time()
 
+    print('Time cost: ', time_end - time_start)
+
+    time_start = time.time()
     print(dataset[0][0].shape)
     print(dataset[0][1].shape)
     print(dataset[0][2].shape)
+    time_end = time.time()
+
+    print('Time cost: ', time_end - time_start)

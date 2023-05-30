@@ -12,6 +12,7 @@ from torch import optim
 import gc
 from rich.progress import track
 import evaluation_interpolation_model as eim
+import time
 
 
 if __name__ == '__main__':
@@ -33,7 +34,7 @@ if __name__ == '__main__':
 
     data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
 
-    input_size = 8
+    input_size = 3
     batch_size = 12
     epoch = 10
 
@@ -107,19 +108,37 @@ if __name__ == '__main__':
 
             input_ts, input_dis = input_ts.to(device), input_dis.to(device)
             
+            time_start = time.time()
             predict_ts = model(input_ts, input_dis)
+            time_end = time.time()
 
+            print('Predict Time cost: ', time_end - time_start)
+
+            time_start = time.time()
             loss = loss_function(predict_ts, ts_ans)
             train_loss_list[i] = loss
+            time_end = time.time()
 
+            print('Loss Time cost: ', time_end - time_start)
+
+
+            time_start = time.time()
+            # calculate metrics in trainset
             for j in range(predict_ts.shape[0]):
                 metrics = eim.evaluation_time_series_txt(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy()) # [rmse, mae, dtw, mfa]
                 train_metrics_list[train_metrics_index] = metrics
                 train_metrics_index += 1
+            time_end = time.time()
 
+            print('Metrics calculate Time cost: ', time_end - time_start)
+
+            time_start = time.time()
             opt.zero_grad()
             loss.backward()
             opt.step()
+            time_end = time.time()
+
+            print('Optim Time cost: ', time_end - time_start)
 
             if (i+1) % 100 == 0:
 
@@ -130,8 +149,6 @@ if __name__ == '__main__':
                 
                 model_parameter_path = os.path.join(result_path, 'epoch' + str(iter) + '_' + str(i) + '.pth')
                 torch.save(model.state_dict(), model_parameter_path)
-
-            gc.collect()
 
         for i, (ts, dis, ts_ans) in track(enumerate(test_loader), description=f"test_epoch{iter} Processing...", total=len(test_loader)):
             ts_ans = ts_ans.to(device)
@@ -157,8 +174,6 @@ if __name__ == '__main__':
             for j in range(batch_size):
                 image_path = os.path.join(test_result_path, 'epoch' + str(iter) + '_' + str(i) + '_' + str(j) + '.png')
                 eim.visualEvaluation_time_series_single(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy(), 0.95, image_path)
-
-            gc.collect()
         
 
         average_train_loss_list[iter] = np.mean(train_loss_list)
@@ -262,6 +277,9 @@ if __name__ == '__main__':
 
         for txt_index in range(len(metrics_path)):
             np.savetxt(metrics_path[txt_index], test_metrics_list[:, txt_index])
+
+        
+        gc.collect()
 
         
 

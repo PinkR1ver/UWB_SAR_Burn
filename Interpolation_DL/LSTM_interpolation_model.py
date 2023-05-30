@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+import time
 
 class varLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, corresponding_feature_size, dense_node_size, num_layers):
@@ -143,16 +144,28 @@ if __name__ == '__main__':
         device = 'cpu'
         print("Using CPU")
     
+    time_start = time.time()
     model = varLSTM(8, 128, 1, 2, [32, 64, 64], 4)
     model = model.to(device)
+    time_end = time.time()
+
+    print('Time cost: ', time_end - time_start)
 
     input_seq = torch.randn(8, 3801, 16) # (input_size, seq_len, batch)
     input_feature = torch.randn(8, 2, 16, 4) # (input_size, feature_size, batch, layers)
 
+    time_start = time.time()
     input_seq, input_feature = input_seq.to(device), input_feature.to(device)
+    time_end = time.time()
 
-    print(model)
+    print('Time cost: ', time_end - time_start)
 
+    # print(model)
+
+    time_start = time.time()
     output = model(input_seq, input_feature)
+    time_end = time.time()
+
+    print('Time cost: ', time_end - time_start)
 
     print(output.shape)
