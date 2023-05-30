@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
 
-    input_size = 3
+    input_size = 4
     batch_size = 12
     epoch = 10
 
@@ -79,6 +79,8 @@ if __name__ == '__main__':
     test_metrics_list = np.zeros((len(test_dataset), 4)) # [rmse, mae, dtw, mfa]
     average_test_metrics_list = np.zeros((epoch, 4))
 
+
+    ## With experiment, we can find that the training process is very slow, so we need to find the bottleneck and we find the bottleneck here is the metrics calculation
     for iter in range(epoch):
 
         train_metrics_index = 0
@@ -108,37 +110,29 @@ if __name__ == '__main__':
 
             input_ts, input_dis = input_ts.to(device), input_dis.to(device)
             
-            time_start = time.time()
             predict_ts = model(input_ts, input_dis)
-            time_end = time.time()
 
-            print('Predict Time cost: ', time_end - time_start)
-
-            time_start = time.time()
             loss = loss_function(predict_ts, ts_ans)
             train_loss_list[i] = loss
-            time_end = time.time()
-
-            print('Loss Time cost: ', time_end - time_start)
 
 
-            time_start = time.time()
-            # calculate metrics in trainset
-            for j in range(predict_ts.shape[0]):
-                metrics = eim.evaluation_time_series_txt(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy()) # [rmse, mae, dtw, mfa]
-                train_metrics_list[train_metrics_index] = metrics
-                train_metrics_index += 1
-            time_end = time.time()
 
-            print('Metrics calculate Time cost: ', time_end - time_start)
+            # # calculate metrics in trainset
+            # for j in range(predict_ts.shape[0]):
+            #     metrics = eim.evaluation_time_series_txt(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy()) # [rmse, mae, dtw, mfa]
+            #     train_metrics_list[train_metrics_index] = metrics
+            #     train_metrics_index += 1
 
-            time_start = time.time()
+            # Using parallel version of evaluation_time_series_txt
+            metrics = eim.evaluation_time_series_txt(ts_ans.cpu().detach().numpy(), predict_ts.cpu().detach().numpy(), dim=predict_ts.shape[0]) # [rmse, mae, dtw, mfa]
+            # print(metrics)
+            train_metrics_list[train_metrics_index:train_metrics_index + predict_ts.shape[0]] = np.array(metrics).reshape(predict_ts.shape[0], 4)
+            train_metrics_index += predict_ts.shape[0]
+
             opt.zero_grad()
             loss.backward()
             opt.step()
-            time_end = time.time()
 
-            print('Optim Time cost: ', time_end - time_start)
 
             if (i+1) % 100 == 0:
 
@@ -165,11 +159,16 @@ if __name__ == '__main__':
             loss = loss_function(predict_ts, ts_ans)
             test_loss_list[i] = loss
 
-            # calculate metrics in testset
-            for j in range(predict_ts.shape[0]):
-                metrics = eim.evaluation_time_series_txt(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy())
-                test_metrics_list[test_metrics_index] = metrics
-                test_metrics_index += 1
+            # # calculate metrics in testset
+            # for j in range(predict_ts.shape[0]):
+            #     metrics = eim.evaluation_time_series_txt(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy())
+            #     test_metrics_list[test_metrics_index] = metrics
+            #     test_metrics_index += 1
+
+            # calculate metrics in testset using parallel version
+            metrics = eim.evaluation_time_series_txt(ts_ans.cpu().detach().numpy(), predict_ts.cpu().detach().numpy(), dim=predict_ts.shape[0]) # [rmse, mae, dtw, mfa]
+            test_metrics_list[test_metrics_index:test_metrics_index + predict_ts.shape[0]] = np.array(metrics).reshape(predict_ts.shape[0], 4)
+            test_metrics_index += predict_ts.shape[0]
 
             for j in range(batch_size):
                 image_path = os.path.join(test_result_path, 'epoch' + str(iter) + '_' + str(i) + '_' + str(j) + '.png')
