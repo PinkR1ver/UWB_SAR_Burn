@@ -12,8 +12,8 @@ def index_to_position(index, Xbeg=0, Xend=0.16, Ybeg=0, Yend=0.16, scan_points=5
     Xstep = (Xend - Xbeg) / (scan_points - 1)
     Ystep = (Yend - Ybeg) / (scan_points - 1)
 
-    x = math.floor(index / 5) * Xstep + Xbeg;
-    y = (index % 5) * Ystep + Ybeg;
+    y = math.floor(index / scan_points) * Ystep + Ybeg;
+    x = (index % scan_points) * Xstep + Xbeg;
 
     return (x, y)
 
@@ -84,19 +84,22 @@ class echoDataset(Dataset):
 
 if __name__ == '__main__':
 
-    base_path = os.path.dirname(__file__)
-    data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
+    # base_path = os.path.dirname(__file__)
+    # data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
 
-    time_start = time.time()
-    dataset = echoDataset(8, data_path=data_path)
-    time_end = time.time()
+    # time_start = time.time()
+    # dataset = echoDataset(8, data_path=data_path)
+    # time_end = time.time()
 
-    print('Time cost: ', time_end - time_start)
+    # print('Time cost: ', time_end - time_start)
 
-    time_start = time.time()
-    print(dataset[0][0].shape)
-    print(dataset[0][1].shape)
-    print(dataset[0][2].shape)
-    time_end = time.time()
+    # time_start = time.time()
+    # print(dataset[0][0].shape)
+    # print(dataset[0][1].shape)
+    # print(dataset[0][2].shape)
+    # time_end = time.time()
 
-    print('Time cost: ', time_end - time_start)
+    # print('Time cost: ', time_end - time_start)
+
+    for i in range(25):
+        print(index_to_position(i))
