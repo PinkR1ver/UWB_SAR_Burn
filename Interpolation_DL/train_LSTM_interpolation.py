@@ -169,9 +169,8 @@ if __name__ == '__main__':
             test_metrics_list[test_metrics_index:test_metrics_index + predict_ts.shape[0]] = np.array(metrics).reshape(predict_ts.shape[0], 4)
             test_metrics_index += predict_ts.shape[0]
 
-            for j in range(batch_size):
-                image_path = os.path.join(test_result_path, 'epoch' + str(iter) + '_' + str(i) + '_' + str(j) + '.png')
-                eim.visualEvaluation_time_series_single(ts_ans[j].cpu().detach().numpy(), predict_ts[j].cpu().detach().numpy(), 0.95, image_path)
+            image_path = os.path.join(test_result_path, 'epoch' + str(iter) + '_' + str(i) + '.png')
+            eim.visualEvaluation_time_series_single(ts_ans[0].cpu().detach().numpy(), predict_ts[0].cpu().detach().numpy(), 0.95, image_path)
         
 
         average_train_loss_list[iter] = np.mean(train_loss_list)
