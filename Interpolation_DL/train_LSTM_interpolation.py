@@ -12,7 +12,6 @@ from torch import optim
 import gc
 from rich.progress import track
 import evaluation_interpolation_model as eim
-import time
 
 
 if __name__ == '__main__':
@@ -35,7 +34,7 @@ if __name__ == '__main__':
     data_path = os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat')
 
     input_size = 4
-    batch_size = 12
+    batch_size = 24
     epoch = 10
 
     if torch.cuda.is_available():
