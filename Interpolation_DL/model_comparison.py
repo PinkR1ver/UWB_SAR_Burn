@@ -174,12 +174,12 @@ def scan_position_interpolation_combine_prediction_show(ts_ture, ts_pred, confid
     y = np.arange(0, scan_position.shape[0])
     X, Y = np.meshgrid(x, y)
 
-    alphas = np.where(scan_position == 0, 0.1, 0.7)
+    alphas = np.where(scan_position == 0, 0.05, 0.7)
 
     scatter = plt.scatter(X.flatten(), Y.flatten(), c=scan_position.flatten(), cmap='viridis', alpha=alphas.flatten(), s=100)
 
-    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=str(i), markerfacecolor=scatter.to_rgba(i), markersize=10) for i in range(int(scan_position.max())+1)]
-    ax2.legend(handles=legend_elements, title='Values', loc='upper right')
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=str(i), markerfacecolor=(*scatter.to_rgba(i)[:3], 0.05 if i == 0 else 0.7), markersize=10) for i in range(int(scan_position.max())+1)]
+    ax2.legend(handles=legend_elements, labels=['None Use', 'Use', 'Target'], bbox_to_anchor=(1.4, 1), loc='upper right')
 
     ax2.set_aspect('equal')
     ax2.set_xticks(np.arange(0, scan_position.shape[1]), np.arange(0, scan_position.shape[1]))
@@ -188,7 +188,7 @@ def scan_position_interpolation_combine_prediction_show(ts_ture, ts_pred, confid
     ax2.set_ylabel('Y')
     ax2.set_title('Interpolation situation')
 
-    
+
 
 
     fig.tight_layout()
