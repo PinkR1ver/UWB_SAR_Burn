@@ -8,6 +8,7 @@ import os
 import math
 import torch
 from rich.progress import track
+from scipy.stats import norm
 
 def index_to_position(index, Xbeg=0, Xend=0.16, Ybeg=0, Yend=0.16, scan_points=5):
     
@@ -131,6 +132,75 @@ def metrics_hist_plot(metircs_list, path):
         plt.close()
 
 
+def scan_position_interpolation_combine_prediction_show(ts_ture, ts_pred, confidence, scan_position_index, scan_position_shape=(5, 5), save_path=None):
+
+    x = np.arange(0, ts_ture.shape[0], 1)
+
+    # 生成置信区间
+    z = norm.ppf(1 - (1 - confidence) / 2)  # 对应置信度的Z分数
+    std = np.std(ts_pred)  # 预测值的标准差
+    y_pred_upper = ts_pred + z * std  # 置信区间上界
+    y_pred_lower = ts_pred - z * std  # 置信区间下界
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+
+    rmse, mae, distance, mfa = eim.evaluation_time_series_txt(ts_ture, ts_pred)
+
+
+    ax1.plot(x, ts_ture, label='ground_truth')
+    ax1.plot(x, ts_pred, label='pred')
+    ax1.fill_between(x, y_pred_lower, y_pred_upper, color='gray', alpha=0.3, label='95% Confidence Interval')
+
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Value')
+    ax1.set_title('Time Series')
+
+    ax1.text(0.02, 0.3, f'RMSE: {rmse:.4f}', transform=ax1.transAxes)
+    ax1.text(0.02, 0.25, f'MAE: {mae:.4f}', transform=ax1.transAxes)
+    ax1.text(0.02, 0.2, f'DTW: {distance:.4f}', transform=ax1.transAxes)
+    ax1.text(0.02, 0.15, f'Mean Forecast Accuracy: {mfa * 100:.2f}%', transform=ax1.transAxes)
+
+    ax1.legend()
+    ax1.grid(True)
+
+    ## plot scan position
+    scan_position = np.zeros(scan_position_shape)
+    for i in range(len(scan_position_index) - 1):
+        scan_position[scan_position_index[i] // scan_position_shape[0], scan_position_index[i] % scan_position_shape[1]] = 1
+    
+    scan_position[scan_position_index[-1] // scan_position_shape[0], scan_position_index[-1] % scan_position_shape[1]] = 2
+    
+    x = np.arange(0, scan_position.shape[1])
+    y = np.arange(0, scan_position.shape[0])
+    X, Y = np.meshgrid(x, y)
+
+    alphas = np.where(scan_position == 0, 0.1, 0.7)
+
+    scatter = plt.scatter(X.flatten(), Y.flatten(), c=scan_position.flatten(), cmap='viridis', alpha=alphas.flatten(), s=100)
+
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=str(i), markerfacecolor=scatter.to_rgba(i), markersize=10) for i in range(int(scan_position.max())+1)]
+    ax2.legend(handles=legend_elements, title='Values', loc='upper right')
+
+    ax2.set_aspect('equal')
+    ax2.set_xticks(np.arange(0, scan_position.shape[1]), np.arange(0, scan_position.shape[1]))
+    ax2.set_yticks(np.arange(0, scan_position.shape[0]), np.arange(0, scan_position.shape[0]))
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.set_title('Interpolation situation')
+
+    
+
+
+    fig.tight_layout()
+
+    if save_path is None:
+        plt.show()
+    else:
+        plt.savefig(save_path)
+        plt.close()
+
+
+
 
 if __name__ == '__main__':
     base_path = os.path.dirname(__file__)
@@ -166,24 +236,28 @@ if __name__ == '__main__':
         dis = test_dataset[i][1]
         ts_ans = test_dataset[i][2]
 
+        scan_index = test_dataset.comb_list[i]
+
         ts_pred = np.empty((degree.shape[0], ts_ans.shape[0]))
 
         for j in range(degree.shape[0]):
             ts_pred[j] = four4_scanPosition_polyInterpolation(ts, dis, degree[j])
 
-        x = np.arange(0, ts_ans.shape[0], 1)
-        plt.figure(figsize=(10, 8))
-        for j in range(degree.shape[0]):
-            plt.plot(x, ts_pred[j], label=f'degree={degree[j]}')
-        plt.plot(x, ts_ans, label='ans')
+        scan_position_interpolation_combine_prediction_show(ts_ans, ts_pred[0], 0.95, scan_index)
 
-        plt.xlabel('Time')
-        plt.ylabel('Value')
-        plt.title('Time Series')
+        # x = np.arange(0, ts_ans.shape[0], 1)
+        # plt.figure(figsize=(10, 8))
+        # for j in range(degree.shape[0]):
+        #     plt.plot(x, ts_pred[j], label=f'degree={degree[j]}')
+        # plt.plot(x, ts_ans, label='ans')
 
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+        # plt.xlabel('Time')
+        # plt.ylabel('Value')
+        # plt.title('Time Series')
+
+        # plt.legend()
+        # plt.grid(True)
+        # plt.show()
         
 
 
