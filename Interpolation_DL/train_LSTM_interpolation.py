@@ -16,6 +16,24 @@ import matplotlib
 
 matplotlib.use('Agg')
 
+'''
+使用Agg后端可以避免在Tkinter应用程序的主线程之外删除Tkinter对象而引发异常。
+由于Agg后端不涉及图形界面和交互操作,它不会创建或操作Tkinter对象,
+因此不会出现在主线程之外删除Tkinter对象的情况。
+
+当使用Agg后端时,matplotlib将图形渲染为像素数组,
+而不会创建任何与图形界面相关的对象。这意味着你可以在任何线程中使用matplotlib绘制图形,
+而不会触发Tkinter对象删除异常。
+
+因此,如果你的应用程序存在多线程场景,
+并且你希望避免在主线程之外删除Tkinter对象引发的异常,
+可以考虑将matplotlib的后端设置为Agg。这
+样就可以安全地在多线程环境中使用matplotlib而不会出现与Tkinter对象相关的问题。
+
+这个程序如果你不使用Agg后端,那么在运行时会报错,因为matplotlib会创建Tkinter对象,
+而Tkinter对象不能在主线程之外删除,不过并不清楚为什么会在主线程之外删除Tkinter对象
+'''
+
 if __name__ == '__main__':
 
     ## init some parameters
