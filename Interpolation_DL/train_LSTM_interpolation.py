@@ -12,6 +12,9 @@ from torch import optim
 import gc
 from rich.progress import track
 import evaluation_interpolation_model as eim
+import matplotlib
+
+matplotlib.use('Agg')
 
 if __name__ == '__main__':
 

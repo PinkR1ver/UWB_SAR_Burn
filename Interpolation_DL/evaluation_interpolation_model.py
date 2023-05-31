@@ -9,6 +9,7 @@ import torch
 import os
 from joblib import Parallel, delayed
 import time
+from rich.progress import track
 
 def visualEvaluation_time_series_single(y_true, y_pred, confidence, savePath=None):
 
@@ -87,17 +88,19 @@ def evaluation_time_series_txt(y_true, y_pred, dim=None, n_jobs=-1):
             mfa_i = np.mean(np.where(y_true[i] != 0, np.maximum(1 - np.abs((y_true[i] - y_pred[i]) / y_true[i]), 0), np.maximum(1 - np.abs((y_true[i] - y_pred[i]) / (y_true[i] + 1e-8)), 0)))
             return rmse_i, mae_i, distance_i, mfa_i
 
-        metrics = Parallel(n_jobs=n_jobs)(delayed(calculate_metrics)(i) for i in range(dim))
-        rmse, mae, distance, mfa = zip(*metrics)
-        rmse = np.array(rmse)
-        mae = np.array(mae)
-        distance = np.array(distance)
-        mfa = np.array(mfa)
+        with Parallel(n_jobs=n_jobs) as parallel:
+            metrics = parallel(delayed(calculate_metrics)(i) for i in range(dim))
+            rmse, mae, distance, mfa = zip(*metrics)
+            rmse = np.array(rmse)
+            mae = np.array(mae)
+            distance = np.array(distance)
+            mfa = np.array(mfa)
 
     return rmse, mae, distance, mfa
 
 
 if __name__ == '__main__':
+
     base_path = os.path.dirname(__file__)
 
     model = lim.varLSTM(input_size=4, hidden_size=64, output_size=1, corresponding_feature_size=2, dense_node_size=[16, 32, 32], num_layers=4)
@@ -108,7 +111,7 @@ if __name__ == '__main__':
 
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=12, shuffle=False)
 
-    for i, (ts, dis, ts_ans) in enumerate(test_loader):
+    for i, (ts, dis, ts_ans) in track(enumerate(test_loader), description="LSTM Interpolation evaluation...", total=len(test_loader)):
         input_ts = ts.permute(1, 2, 0) # change to (input_size, seq_len, batch)
 
         dis = dis.unsqueeze(-1).expand(-1, -1, -1, model.num_layers) # change to (batch, input_dim, seq_len, num_layers)
@@ -141,24 +144,24 @@ if __name__ == '__main__':
 
         for i in range(12):
             rmse_new[i], mae_new[i], distance_new[i], mfa_new[i] = evaluation_time_series_txt(y_true[i], y_pred[i])
-            print(f'RMSE: {rmse[i]:.4f}')
-            print(f'MAE: {mae[i]:.4f}')
-            print(f'DTW: {distance[i]:.4f}')
-            print(f'Mean Forecast Accuracy: {mfa[i] * 100:.2f}%')
-            print('------------------------')
-            print(f'RMSE: {rmse_new[i]:.4f}')
-            print(f'MAE: {mae_new[i]:.4f}')
-            print(f'DTW: {distance_new[i]:.4f}')
-            print(f'Mean Forecast Accuracy: {mfa_new[i] * 100:.2f}%')
+            # print(f'RMSE: {rmse[i]:.4f}')
+            # print(f'MAE: {mae[i]:.4f}')
+            # print(f'DTW: {distance[i]:.4f}')
+            # print(f'Mean Forecast Accuracy: {mfa[i] * 100:.2f}%')
+            # print('------------------------')
+            # print(f'RMSE: {rmse_new[i]:.4f}')
+            # print(f'MAE: {mae_new[i]:.4f}')
+            # print(f'DTW: {distance_new[i]:.4f}')
+            # print(f'Mean Forecast Accuracy: {mfa_new[i] * 100:.2f}%')
 
-        pause = input('Press any key to continue...')
+        # pause = input('Press any key to continue...')
 
         print(rmse == rmse_new)
         print(mae == mae_new)
         print(distance == distance_new)
         print(mfa == mfa_new)
 
-        pause = input('Press any key to continue...')
+        # pause = input('Press any key to continue...')
 
 
 
