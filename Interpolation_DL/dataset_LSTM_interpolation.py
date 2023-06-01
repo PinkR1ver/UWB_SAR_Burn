@@ -5,7 +5,6 @@ import numpy as np
 import scipy.io
 import itertools
 import math
-import time
 
 def index_to_position(index, Xbeg=0, Xend=0.16, Ybeg=0, Yend=0.16, scan_points=5):
     

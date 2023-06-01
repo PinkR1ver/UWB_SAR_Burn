@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 data = np.array([[0, 0, 0, 0, 2],
                  [0, 1, 0, 1, 0],
                  [0, 0, 0, 1, 0],
-                 [0, 0, 0, 0, 0],
+                 [1, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0]])
 
 # 创建一个与数组相同大小的网格
@@ -22,17 +22,30 @@ scatter = plt.scatter(X.flatten(), Y.flatten(), c=data.flatten(), cmap='viridis'
 # 获取值为1和2的点的坐标
 indices_1 = np.argwhere(data == 1)
 indices_2 = np.argwhere(data == 2)
-print(indices_1)
-print('----------------')
-print(indices_2)
+# print(indices_1)
+# print('----------------')
+# print(indices_2)
+
+indices_1 = indices_1[:,::-1]
+indices_2 = indices_2[:,::-1]
+
+distance = np.empty(len(indices_1))
 
 for i in range(len(indices_1)):
     dx = indices_2[0][0] - indices_1[i][0]
     dy = indices_2[0][1] - indices_1[i][1]
-    distance = np.sqrt(dx ** 2 + dy ** 2)
+    distance[i] = np.sqrt(dx ** 2 + dy ** 2)
 
-    arrow_color = plt.cm.viridis(distance)  # 根据距离获取箭头的颜色
-    plt.annotate(f'{distance:.2f}', xy=(indices_2[0][0], indices_2[0][1]), xytext=(indices_1[i][0], indices_1[i][1]), arrowprops=dict(arrowstyle='->', lw=1.5, color=arrow_color))
+# 创建一个标准化器，将距离值归一化到 [0, 1] 范围内
+norm = plt.Normalize(distance.min(), distance.max())
+
+# 创建一个颜色映射对象
+cmap = plt.cm.get_cmap('jet')
+
+for i in range(len(indices_1)):
+    arrow_color = cmap(norm(distance[i]))  # 根据距离获取箭头的颜色
+    plt.annotate(f'{distance[i]:.2f}', xy=(indices_2[0][0], indices_2[0][1]), xytext=(indices_1[i][0], indices_1[i][1]), arrowprops=dict(arrowstyle='->', lw=1.5, color=arrow_color))
+
 
 
 
@@ -62,6 +75,16 @@ plt.yticks(np.arange(0, data.shape[0]), np.arange(0, data.shape[0]))
 plt.xlabel('X')
 plt.ylabel('Y')
 plt.title('Scatter Plot of Data Points')
+
+# 创建 ScalarMappable 对象，并设置相应的属性
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])  # 设置空数组以避免警告
+
+# 绘制颜色条
+colorbar = plt.colorbar(sm)
+
+# 设置颜色条标签
+colorbar.set_label('Distance')
 
 # 显示图形
 plt.show()
