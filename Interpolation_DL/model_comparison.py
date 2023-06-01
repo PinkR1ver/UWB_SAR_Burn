@@ -9,6 +9,11 @@ import math
 import torch
 from rich.progress import track
 from scipy.stats import norm
+import itertools
+import random
+import matplotlib
+
+# matplotlib.use('Agg')
 
 def index_to_position(index, Xbeg=0, Xend=0.16, Ybeg=0, Yend=0.16, scan_points=5):
     
@@ -21,6 +26,59 @@ def index_to_position(index, Xbeg=0, Xend=0.16, Ybeg=0, Yend=0.16, scan_points=5
     return (x, y)
 
 
+class interpolation_from_4ScanPositionAll_dataset(Dataset):
+    def __init__(self, data_path, size):
+        self.data_path = data_path
+        self.size = size
+
+        SAR_sample = scipy.io.loadmat(data_path)
+        data_name = data_path.split('\\')[-1].split('.')[0]
+        SAR_sample = SAR_sample[data_name]
+
+        self.SAR_sample = SAR_sample
+        
+        # 从0到24生成所有可能的4个数的组合
+        numbers = list(range(25))
+        combinations = list(itertools.combinations(numbers, 4))
+
+        comb_list = []
+        for comb in combinations:
+            for num in range(25):
+                if num not in comb:
+                    position = [index_to_position(i) for i in comb]
+                    target = index_to_position(num)
+                    offset = np.array(position) - np.array(target)
+                    # print(offset)
+                    # print('----------------')
+                    # print(offset[:,0])
+                    # print('----------------')
+                    # print(offset[:,1])
+                    # pause = input('Press any key to continue...')
+                    if np.sum(offset[:,0]) == 0 and np.sum(offset[:,1]) == 0:
+                        comb_list.append(comb + (num,))
+        
+        self.comb_list = comb_list
+
+    def __len__(self):
+        return len(self.comb_list)
+    
+    def __getitem__(self, index):
+        ts = np.empty((4, len(self.SAR_sample[0])))
+
+        for i in range(4):
+            ts[i] = self.SAR_sample[self.comb_list[index][i]]
+
+        ts_ans = self.SAR_sample[self.comb_list[index][4]]
+
+        dis = np.empty((4, 2))
+
+        for i in range(4):
+            (x, y) = index_to_position(self.comb_list[index][i])
+            (x_ans, y_ans) = index_to_position(self.comb_list[index][4])
+            dis[i] = (x - x_ans, y - y_ans)
+
+        return ts, dis, ts_ans
+    
 class interpolation_from_4ScanPosition_dataset(Dataset):
     def __init__(self, data_path, size):
         self.data_path = data_path
@@ -104,19 +162,19 @@ def four4_scanPosition_squardInterpolation(ts, position):
 def four4_scanPosition_polyInterpolation(ts_input, position, degree=2):
     ts = ts_input.copy() # avoid change input ts, deep copy it
     dis = np.empty(ts.shape[0])
-    dis_sum  = 0
 
     for i in range(position.shape[0]):
         dis[i] = math.sqrt(position[i][0] ** 2 + position[i][1] ** 2)
-        dis_sum += (dis[i] ** degree)
 
 
     partial = np.empty(ts.shape[0])
-    for i in range(partial.shape[0]):
-        partial[i] = (dis[i] ** degree) / dis_sum
+    max_dis = dis.max()
+    partial = [(max_dis - d) ** degree / max_dis ** degree for d in dis]
+    partial_sum = sum(partial)  # 权重数组之和
+    partial_normalized = [p / partial_sum for p in partial]
 
     for i in range(ts.shape[0]):
-        ts[i] = ts[i] * partial[i]
+        ts[i] = ts[i] * partial_normalized[i]
     
     ts_interpolation = np.sum(ts, axis=0)
 
@@ -170,13 +228,40 @@ def scan_position_interpolation_combine_prediction_show(ts_ture, ts_pred, confid
     
     scan_position[scan_position_index[-1] // scan_position_shape[0], scan_position_index[-1] % scan_position_shape[1]] = 2
     
-    x = np.arange(0, scan_position.shape[1])
-    y = np.arange(0, scan_position.shape[0])
+    x = np.arange(0, scan_position.shape[0])
+    y = np.arange(0, scan_position.shape[1])
     X, Y = np.meshgrid(x, y)
 
     alphas = np.where(scan_position == 0, 0.05, 0.7)
 
     scatter = plt.scatter(X.flatten(), Y.flatten(), c=scan_position.flatten(), cmap='viridis', alpha=alphas.flatten(), s=100)
+
+    indices_1 = np.argwhere(scan_position == 1)
+    indices_2 = np.argwhere(scan_position == 2)
+
+    indices_1 = indices_1[:,::-1]
+    indices_2 = indices_2[:,::-1]
+
+    # print(indices_1)
+    # print('----------------')
+    # print(indices_2)
+
+    distance = np.empty(len(indices_1))
+
+    for i in range(len(indices_1)):
+        dx = indices_2[0][0] - indices_1[i][0]
+        dy = indices_2[0][1] - indices_1[i][1]
+        distance[i] = np.sqrt(dx ** 2 + dy ** 2)
+
+    # 创建一个标准化器，将距离值归一化到 [0, 1] 范围内
+    norm_distance = plt.Normalize(distance.min(), distance.max())
+
+    # 创建一个颜色映射对象
+    cmap = plt.cm.get_cmap('cool')
+
+    for i in range(len(indices_1)):
+        arrow_color = cmap(norm_distance(distance[i]))  # 根据距离获取箭头的颜色
+        plt.annotate(f'{distance[i]:.2f}', xy=(indices_2[0][0], indices_2[0][1]), xytext=(indices_1[i][0], indices_1[i][1]), arrowprops=dict(arrowstyle='->', lw=1.5, color=arrow_color))
 
     legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=str(i), markerfacecolor=(*scatter.to_rgba(i)[:3], 0.05 if i == 0 else 0.7), markersize=10) for i in range(int(scan_position.max())+1)]
     ax2.legend(handles=legend_elements, labels=['None Use', 'Use', 'Target'], bbox_to_anchor=(1.4, 1), loc='upper right')
@@ -189,6 +274,85 @@ def scan_position_interpolation_combine_prediction_show(ts_ture, ts_pred, confid
     ax2.set_title('Interpolation situation')
 
 
+    fig.tight_layout()
+
+    if save_path is None:
+        plt.show()
+    else:
+        plt.savefig(save_path)
+        plt.close()
+
+def scan_position_differentDegreeInterpolation_combine_prediction_show(ts_ture, ts_pred, degree, scan_position_index, scan_position_shape=(5, 5), save_path=None):
+    
+    x = np.arange(0, ts_ture.shape[0], 1)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+
+    # rmse, mae, distance, mfa = eim.evaluation_time_series_txt(ts_ture, ts_pred)
+
+    ax1.plot(x, ts_ture, label='ground_truth')
+    for i in range(ts_pred.shape[0]):
+        ax1.plot(x, ts_pred[i], label=f'pred_using_degree={degree[i]}')
+
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Value')
+    ax1.set_title('Time Series')
+
+
+    ax1.legend()
+    ax1.grid(True)
+
+    ## plot scan position
+    scan_position = np.zeros(scan_position_shape)
+    for i in range(len(scan_position_index) - 1):
+        scan_position[scan_position_index[i] // scan_position_shape[0], scan_position_index[i] % scan_position_shape[1]] = 1
+    
+    scan_position[scan_position_index[-1] // scan_position_shape[0], scan_position_index[-1] % scan_position_shape[1]] = 2
+    
+    x = np.arange(0, scan_position.shape[0])
+    y = np.arange(0, scan_position.shape[1])
+    X, Y = np.meshgrid(x, y)
+
+    alphas = np.where(scan_position == 0, 0.05, 0.7)
+
+    scatter = plt.scatter(X.flatten(), Y.flatten(), c=scan_position.flatten(), cmap='viridis', alpha=alphas.flatten(), s=100)
+
+    indices_1 = np.argwhere(scan_position == 1)
+    indices_2 = np.argwhere(scan_position == 2)
+
+    indices_1 = indices_1[:,::-1]
+    indices_2 = indices_2[:,::-1]
+
+    # print(indices_1)
+    # print('----------------')
+    # print(indices_2)
+
+    distance = np.empty(len(indices_1))
+
+    for i in range(len(indices_1)):
+        dx = indices_2[0][0] - indices_1[i][0]
+        dy = indices_2[0][1] - indices_1[i][1]
+        distance[i] = np.sqrt(dx ** 2 + dy ** 2)
+
+    # 创建一个标准化器，将距离值归一化到 [0, 1] 范围内
+    norm_distance = plt.Normalize(distance.min(), distance.max())
+
+    # 创建一个颜色映射对象
+    cmap = plt.cm.get_cmap('cool')
+
+    for i in range(len(indices_1)):
+        arrow_color = cmap(norm_distance(distance[i]))  # 根据距离获取箭头的颜色
+        plt.annotate(f'{distance[i]:.2f}', xy=(indices_2[0][0], indices_2[0][1]), xytext=(indices_1[i][0], indices_1[i][1]), arrowprops=dict(arrowstyle='->', lw=1.5, color=arrow_color))
+
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=str(i), markerfacecolor=(*scatter.to_rgba(i)[:3], 0.05 if i == 0 else 0.7), markersize=10) for i in range(int(scan_position.max())+1)]
+    ax2.legend(handles=legend_elements, labels=['None Use', 'Use', 'Target'], bbox_to_anchor=(1.4, 1), loc='upper right')
+
+    ax2.set_aspect('equal')
+    ax2.set_xticks(np.arange(0, scan_position.shape[1]), np.arange(0, scan_position.shape[1]))
+    ax2.set_yticks(np.arange(0, scan_position.shape[0]), np.arange(0, scan_position.shape[0]))
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.set_title('Interpolation situation')
 
 
     fig.tight_layout()
@@ -224,13 +388,23 @@ if __name__ == '__main__':
     if not os.path.exists(degree_path):
         os.makedirs(degree_path)
 
-    degree = np.arange(1, 3, 0.5)    
+    random_sample_path = os.path.join(degree_path, 'random_sample')
+    if not os.path.exists(random_sample_path):
+        os.makedirs(random_sample_path)
 
-    test_dataset = interpolation_from_4ScanPosition_dataset(os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat'), 5)
+    degree = np.arange(1, 5, 0.5)    
+
+    test_dataset = interpolation_from_4ScanPositionAll_dataset(os.path.join(base_path, '..', 'data', 'data_8080_2_1_25.mat'), 5)
     metrics_list = np.empty((len(test_dataset), 4)) # [rmse, mae, distance, mfa]
 
+    random_sample = [random.randint(0, len(test_dataset) - 1) for i in range(10)]
 
-    for i in range(len(test_dataset)):
+    rmse = np.empty((len(random_sample), degree.shape[0]))
+    mae = np.empty((len(random_sample), degree.shape[0]))
+    distance = np.empty((len(random_sample), degree.shape[0]))
+    mfa = np.empty((len(random_sample), degree.shape[0]))
+
+    for iter, i in track(enumerate(random_sample), description="Interpolation evaluation...", total=len(random_sample)):
 
         ts = test_dataset[i][0]
         dis = test_dataset[i][1]
@@ -243,7 +417,51 @@ if __name__ == '__main__':
         for j in range(degree.shape[0]):
             ts_pred[j] = four4_scanPosition_polyInterpolation(ts, dis, degree[j])
 
-        scan_position_interpolation_combine_prediction_show(ts_ans, ts_pred[0], 0.95, scan_index)
+            rmse[iter, j], mae[iter, j], distance[iter, j], mfa[iter, j] = eim.evaluation_time_series_txt(ts_ans, ts_pred[j])
+
+        
+        scan_position_differentDegreeInterpolation_combine_prediction_show(ts_ans, ts_pred, degree, scan_index)
+        
+    
+    # plot degree comparison in histogram
+    name = ['RMSE', 'MAE', 'DTW', 'MFA']
+    plt.figure(figsize=(10, 8))
+    for i in range(4):
+        plt.hist(rmse[:, i], alpha=0.5, bins=30, label=f'interpolation degree={1 + i * 0.5}')
+    
+    plt.title(f'RMSE distribution')
+    plt.legend()
+    plt.savefig(os.path.join(degree_path, f'RMSE distribution.png'))
+    plt.close()
+
+    plt.figure(figsize=(10, 8))
+    for i in range(4):
+        plt.hist(mae[:, i], alpha=0.5, bins=30, label=f'interpolation degree={1 + i * 0.5}')
+    
+    plt.title(f'MAE distribution')
+    plt.legend()
+    plt.savefig(os.path.join(degree_path, f'MAE distribution.png'))
+    plt.close()
+
+    plt.figure(figsize=(10, 8))
+    for i in range(4):
+        plt.hist(distance[:, i], alpha=0.5, bins=30, label=f'interpolation degree={1 + i * 0.5}')
+
+    plt.title(f'DTW distribution')
+    plt.legend()
+    plt.savefig(os.path.join(degree_path, f'DTW distribution.png'))
+    plt.close()
+
+    plt.figure(figsize=(10, 8))
+    for i in range(4):
+        plt.hist(mfa[:, i], alpha=0.5, bins=30, label=f'interpolation degree={1 + i * 0.5}')
+    
+    plt.title(f'MFA distribution')
+    plt.legend()
+    plt.savefig(os.path.join(degree_path, f'MFA distribution.png'))
+    plt.close()
+
+        # scan_position_interpolation_combine_prediction_show(ts_ans, ts_pred[0], 0.95, scan_index)
 
         # x = np.arange(0, ts_ans.shape[0], 1)
         # plt.figure(figsize=(10, 8))
