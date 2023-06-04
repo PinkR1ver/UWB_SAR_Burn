@@ -1,4 +1,4 @@
-function imgI = GBP_3D_simu(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, window_length)
+function imgI = GBP_3D_simu(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, azimuth_range, elevation_range)
 
 
     x_grid = linspace(Xbeg, Xend, Nx);
@@ -29,11 +29,14 @@ function imgI = GBP_3D_simu(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N
                     index = floor(t * fs) + 1;
 
 
-                    slice_horizonal_dis = sqrt(X2t + Y2t);
-                    disX = sqrt(X2t);
-                    disY = sqrt(Y2t);
+                    % slice_horizonal_dis = sqrt(X2t + Y2t);
+                    % disX = sqrt(X2t);
+                    % disY = sqrt(Y2t);
 
-                    if(index < length_s && slice_horizonal_dis < window_length)
+                    azimuth = atan2d(Y2t, X2t);                  
+                    elevation = asind(Z2t / dis);
+
+                    if(index < length_s && azimuth >= azimuth_range(1) && azimuth <= azimuth_range(2) && elevation >= elevation_range(1) && elevation <= elevation_range(2))
                         imgTmp(nx, ny, nz, 1) = s(n_aper, index);
                         imgTmp(nx, ny, nz, 2) = imgTmp(nx, ny, nz, 2) + 1;
                     end
