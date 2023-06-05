@@ -73,14 +73,18 @@ ylim([-0.05, 0.21])
 gif_number = 64;
 pic_num = 1;
 
-for i = 1:gif_number
-    Image3D = GBP_3D_simu_window(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, 0.004 * i);
+color_bar_flag = 0;
+color_max = 0;
+color_min = 0;
 
-    %% convert cube to vector to scatter 3D cube
-    x = repmat (1:100,1,100*100);
-    y = repmat (reshape (repmat (1:100,100,1),1,[]),1,100);
-    z = reshape (repmat (1:100,100*100,1),1,[]);
-    v = Image3D (:);
+for i = 1:gif_number
+    Image3D = GBP_3D_simu_window(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, [-180 180], [-10 - 0.02*i 10 + 0.02*i]);
+
+    % %% convert cube to vector to scatter 3D cube
+    % x = repmat (1:100,1,100*100);
+    % y = repmat (reshape (repmat (1:100,100,1),1,[]),1,100);
+    % z = reshape (repmat (1:100,100*100,1),1,[]);
+    % v = Image3D (:);
 
     % figure (1)
     % scatter3 (x,y,z,[],v,'filled')
@@ -121,13 +125,35 @@ for i = 1:gif_number
     % end
 
     data = Image3D(:,:,68);
-    cmin = min(min(data));
-    cmax = max(max(data));
+    if color_bar_flag == 0
+        cmin = min(min(data));
+        cmax = max(max(data));
+        color_min = cmin;
+        color_max = cmax;
+        color_bar_flag = 1;
+    else
+        cmin = min(min(data));         
+        cmax = max(max(data));
+        if cmin < color_min
+            color_min = cmin;
+        end
 
-    clims = [cmin cmax];
+        if cmax > color_max
+            color_max = cmax;
+        end
+    end
+end
 
-    imagesc(data, [cmin cmax]);
+clims = [color_min color_max];
+
+for i = 1:gif_number
+    Image3D = GBP_3D_simu_window(Nx, Ny, Nz, Xbeg, Xend, Ybeg, Yend, Zbeg, Zend, s, N_aper, X_aper, Y_aper, Z_aper, range_compan, c, fs, [-180 180], [-10 - 0.02*i 10 + 0.02*i]);
+
+    data = Image3D(:,:,i);
+
+    imagesc(data, clims);
     axis equal;
+    colorbar;
 
     F=getframe(gcf);
     I=frame2im(F);
